@@ -7,6 +7,10 @@ RUN --mount=type=bind,source=.,destination=/chrome_docker \
 
 
 FROM chromedp/headless-shell as app
+RUN --mount=type=cache,sharing=locked,target=/var/lib/apt \
+    --mount=type=cache,sharing=locked,target=/var/cache/apt \
+    apt-get update && apt-get install -y --no-install-recommends \
+        ttf-wqy-zenhei
 COPY --from=builder /tmp/chrome_service /chrome_service
 WORKDIR /
 ENTRYPOINT [ "/chrome_service", "-addr", ":5558" ]
