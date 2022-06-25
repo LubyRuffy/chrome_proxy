@@ -15,6 +15,11 @@ docker build --tag lubyruffy/chrome_proxy:latest .
 docker run --rm -it -p5558:5558 lubyruffy/chrome_proxy:latest
 ```
 
+运行
+```shell
+docker save -o chrome_proxy.tar lubyruffy/chrome_proxy:latest
+```
+
 截图
 ```shell
 curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0.1:5558/screenshot
