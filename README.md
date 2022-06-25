@@ -14,4 +14,5 @@ docker build --tag lubyruffy/chrome_proxy:latest .
 docker run --rm -it -p5558:5558 lubyruffy/chrome_proxy:latest
 
 curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0.1:5558/screenshot
+curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0.1:5558/renderDom
 ```
