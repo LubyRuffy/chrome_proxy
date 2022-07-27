@@ -144,25 +144,26 @@ func renderURLDOM(options *chromeParam) (string, error) {
 	return html, err
 }
 
-func getOptionFromRequest(r *http.Request) *chromeParam {
+func getOptionFromRequest(r *http.Request) (*chromeParam, error) {
 	var options chromeParam
 	err := json.NewDecoder(r.Body).Decode(&options)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	defer r.Body.Close()
 
 	if options.Timeout == 0 {
 		options.Timeout = 20
 	}
-	return &options
+	return &options, nil
 
 }
 
 type result struct {
-	Code int    `json:"code"`
-	Url  string `json:"url,omitempty"`
-	Data string `json:"data,omitempty"`
+	Code    int    `json:"code"`
+	Message string `json:"message,omitempt"`
+	Url     string `json:"url,omitempty"`
+	Data    string `json:"data,omitempty"`
 }
 
 func (r result) Bytes() []byte {
@@ -177,10 +178,11 @@ func main() {
 	http.HandleFunc("/screenshot", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		options := getOptionFromRequest(r)
+		options, err := getOptionFromRequest(r)
 		if options == nil {
 			w.Write(result{
-				Code: 500,
+				Code:    500,
+				Message: err.Error(),
 			}.Bytes())
 			return
 		}
@@ -188,7 +190,8 @@ func main() {
 		data, err := screenshotURL(options)
 		if err != nil {
 			w.Write(result{
-				Code: 500,
+				Code:    500,
+				Message: err.Error(),
 			}.Bytes())
 			return
 		}
@@ -204,10 +207,11 @@ func main() {
 	http.HandleFunc("/renderDom", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
-		options := getOptionFromRequest(r)
+		options, err := getOptionFromRequest(r)
 		if options == nil {
 			w.Write(result{
-				Code: 500,
+				Code:    500,
+				Message: err.Error(),
 			}.Bytes())
 			return
 		}
@@ -215,7 +219,8 @@ func main() {
 		data, err := renderURLDOM(options)
 		if err != nil {
 			w.Write(result{
-				Code: 500,
+				Code:    500,
+				Message: err.Error(),
 			}.Bytes())
 			return
 		}
