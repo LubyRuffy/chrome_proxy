@@ -16,6 +16,7 @@ import (
 
 var (
 	defaultUserAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/102.0.5005.124 Safari/537.36 Edg/102.0.1245.44"
+	debug            = false
 )
 
 //chromeActions 完成chrome的headless操作
@@ -39,6 +40,12 @@ func chromeActions(u string, logf func(string, ...interface{}), timeout int, act
 		chromedp.UserAgent(defaultUserAgent), // chromedp.Flag("user-agent", defaultUserAgent)
 		chromedp.WindowSize(1024, 768),
 	)
+
+	if debug {
+		opts = append(chromedp.DefaultExecAllocatorOptions[:2],
+			chromedp.DefaultExecAllocatorOptions[3:]...)
+		opts = append(opts, chromedp.Flag("auto-open-devtools-for-tabs", true))
+	}
 
 	allocCtx, bcancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	defer bcancel()
@@ -126,17 +133,22 @@ func renderURLDOM(options *chromeParam) (string, error) {
 	log.Println("renderURLDOM of url:", options.URL)
 
 	var html string
+	var actions []chromedp.Action
+	if options.Sleep > 0 {
+		actions = append(actions, chromedp.Sleep(time.Second*time.Duration(options.Sleep)))
+	}
+	actions = append(actions, chromedp.ActionFunc(func(ctx context.Context) error {
+		node, err := dom.GetDocument().Do(ctx)
+		if err != nil {
+			return err
+		}
+		html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
+		return err
+	}))
+
 	err := chromeActions(options.URL, func(s string, i ...interface{}) {
 
-	}, options.Timeout,
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			node, err := dom.GetDocument().Do(ctx)
-			if err != nil {
-				return err
-			}
-			html, err = dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
-			return err
-		}))
+	}, options.Timeout, actions...)
 	if err != nil {
 		return "", fmt.Errorf("renderURLDOM failed(%w): %s", err, options.URL)
 	}
