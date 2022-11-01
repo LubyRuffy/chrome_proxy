@@ -19,9 +19,21 @@ var (
 	debug            = false
 )
 
+type ChromeActionInput struct {
+	URL       string `json:"url"`
+	Proxy     string `json:"proxy,omitempty"`
+	UserAgent string `json:"user_agent,omitempty"`
+}
+
 //chromeActions 完成chrome的headless操作
-func chromeActions(u string, logf func(string, ...interface{}), timeout int, actions ...chromedp.Action) error {
+func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), timeout int, actions ...chromedp.Action) error {
 	var err error
+
+	// set user-agent
+	if in.UserAgent == "" {
+		in.UserAgent = defaultUserAgent
+	}
+
 	// prepare the chrome options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.Flag("headless", true),
@@ -37,9 +49,14 @@ func chromeActions(u string, logf func(string, ...interface{}), timeout int, act
 		chromedp.NoDefaultBrowserCheck,
 		chromedp.NoSandbox,
 		chromedp.DisableGPU,
-		chromedp.UserAgent(defaultUserAgent), // chromedp.Flag("user-agent", defaultUserAgent)
+		chromedp.UserAgent(in.UserAgent), // chromedp.Flag("user-agent", defaultUserAgent)
 		chromedp.WindowSize(1024, 768),
 	)
+
+	// set proxy if exists
+	if in.Proxy != "" {
+		opts = append(opts, chromedp.ProxyServer(in.Proxy))
+	}
 
 	if debug {
 		opts = append(chromedp.DefaultExecAllocatorOptions[:2],
@@ -59,7 +76,7 @@ func chromeActions(u string, logf func(string, ...interface{}), timeout int, act
 			// 等待完成，要么是body出来了，要么是资源加载完成
 			ch := make(chan error, 1)
 			go func(eCh chan error) {
-				err := chromedp.Navigate(u).Do(cxt)
+				err := chromedp.Navigate(in.URL).Do(cxt)
 				if err != nil {
 					eCh <- err
 				}
@@ -103,9 +120,9 @@ func chromeActions(u string, logf func(string, ...interface{}), timeout int, act
 }
 
 type chromeParam struct {
-	URL     string
-	Sleep   int
-	Timeout int
+	Sleep   int `json:"sleep"`
+	Timeout int `json:"timeout"`
+	ChromeActionInput
 }
 
 func screenshotURL(options *chromeParam) ([]byte, error) {
@@ -118,7 +135,7 @@ func screenshotURL(options *chromeParam) ([]byte, error) {
 	}
 	actions = append(actions, chromedp.CaptureScreenshot(&buf))
 
-	err := chromeActions(options.URL, func(s string, i ...interface{}) {
+	err := chromeActions(options.ChromeActionInput, func(s string, i ...interface{}) {
 
 	}, options.Timeout, actions...)
 	if err != nil {
@@ -146,9 +163,10 @@ func renderURLDOM(options *chromeParam) (string, error) {
 		return err
 	}))
 
-	err := chromeActions(options.URL, func(s string, i ...interface{}) {
+	err := chromeActions(options.ChromeActionInput, func(s string, i ...interface{}) {
 
 	}, options.Timeout, actions...)
+
 	if err != nil {
 		return "", fmt.Errorf("renderURLDOM failed(%w): %s", err, options.URL)
 	}
