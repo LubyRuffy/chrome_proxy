@@ -122,8 +122,9 @@ func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), time
 }
 
 type chromeParam struct {
-	Sleep   int `json:"sleep"`
-	Timeout int `json:"timeout"`
+	Sleep   int  `json:"sleep"`
+	Timeout int  `json:"timeout"`
+	AddUrl  bool `json:"add_url"` // 在截图中展示url地址
 	ChromeActionInput
 }
 
@@ -142,6 +143,14 @@ func screenshotURL(options *chromeParam) ([]byte, error) {
 	}, options.Timeout, actions...)
 	if err != nil {
 		return nil, fmt.Errorf("screenShot failed(%w): %s", err, options.URL)
+	}
+
+	if options.AddUrl {
+		tmp, err := AddUrlToTitle(options.URL, buf)
+		if err != nil {
+			return buf, fmt.Errorf("add url title failed(%w): %s", err, options.URL)
+		}
+		buf = tmp
 	}
 
 	return buf, nil
