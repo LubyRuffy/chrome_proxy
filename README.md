@@ -10,9 +10,9 @@ docker build --tag lubyruffy/chrome_proxy:latest .
 
 ## 推送k8s
 ```shell
-aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin 065483041701.dkr.ecr.cn-northwest-1.amazonaws.com.cn
-docker tag lubyruffy/chrome_proxy:latest 065483041701.dkr.ecr.cn-northwest-1.amazonaws.com.cn/chromeproxy:v3
-docker push 065483041701.dkr.ecr.cn-northwest-1.amazonaws.com.cn/chromeproxy:v3
+aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin *.dkr.ecr.*.amazonaws.com.cn
+docker tag lubyruffy/chrome_proxy:latest *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
+docker push *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
 ```
 
 ## 测试运行
@@ -39,6 +39,20 @@ curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0
 }
 ```
 
+附带url的截图
+```shell
+curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10, "add_url": true}' http://127.0.0.1:5558/screenshot
+```
+```json
+{
+    "code": 200,
+    "url": "http://www.baidu.com",
+    "data": "/9j/4...base64..."
+}
+```
+截图预览：
+![screenshot_with_url.png](screenshot_with_url.png)
+
 渲染dom
 ```shell
 curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0.1:5558/renderDom
@@ -63,3 +77,4 @@ curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10, "proxy":"socks5
   "data": "iVBOR..."
 }
 ```
+
