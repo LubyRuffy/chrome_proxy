@@ -375,7 +375,7 @@ func AddUrlToTitle(url string, picBuf []byte) (result []byte, err error) {
 	defer cancel()
 
 	var buf []byte
-	if err = chromedp.Run(ctx, fullScreenshot(`file://`+fn, 90, &buf)); err != nil {
+	if err = chromedp.Run(ctx, fullScreenshot(`file://`+fn, 100, &buf)); err != nil {
 		return nil, err
 	}
 

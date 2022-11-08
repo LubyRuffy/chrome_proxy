@@ -39,6 +39,20 @@ curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0
 }
 ```
 
+附带url的截图
+```shell
+curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10, "add_url": true}' http://127.0.0.1:5558/screenshot
+```
+```json
+{
+    "code": 200,
+    "url": "http://www.baidu.com",
+    "data": "/9j/4...base64..."
+}
+```
+截图预览：
+![screenshot_with_url.png](screenshot_with_url.png)
+
 渲染dom
 ```shell
 curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0.1:5558/renderDom
@@ -63,3 +77,4 @@ curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10, "proxy":"socks5
   "data": "iVBOR..."
 }
 ```
+
