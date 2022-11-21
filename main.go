@@ -122,9 +122,10 @@ func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), time
 }
 
 type chromeParam struct {
-	Sleep   int  `json:"sleep"`
-	Timeout int  `json:"timeout"`
-	AddUrl  bool `json:"add_url"` // 在截图中展示url地址
+	Sleep        int  `json:"sleep"`
+	Timeout      int  `json:"timeout"`
+	AddUrl       bool `json:"add_url"` // 在截图中展示url地址
+	AddTimeStamp bool `json:"add_time_stamp"`
 	ChromeActionInput
 }
 
@@ -146,7 +147,7 @@ func screenshotURL(options *chromeParam) ([]byte, error) {
 	}
 
 	if options.AddUrl {
-		tmp, err := AddUrlToTitle(options.URL, buf)
+		tmp, err := AddUrlToTitle(options.URL, buf, options.AddTimeStamp)
 		if err != nil {
 			return buf, fmt.Errorf("add url title failed(%w): %s", err, options.URL)
 		}
@@ -281,7 +282,7 @@ func main() {
 }
 
 //AddUrlToTitle 通过html转换对整个screenshot截图结果进行处理，添加标题栏并在其中写入访问的url地址
-func AddUrlToTitle(url string, picBuf []byte) (result []byte, err error) {
+func AddUrlToTitle(url string, picBuf []byte, hasTimeStamp bool) (result []byte, err error) {
 	htmlPart1 := `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -342,9 +343,14 @@ func AddUrlToTitle(url string, picBuf []byte) (result []byte, err error) {
                 <div class="btn red"></div>
                 <div class="btn yellow"></div>
                 <div class="btn green"></div>
-                <div class="btn" style="margin-top: -7px;margin-left: 1%;">
+`
+	htmlTitle := `<div class="btn" style="margin-top: -7px;margin-left: 1%;">
                     <b style="color:#48576a">`
-	htmlPart2 := `</b>
+	htmlTimeStamp := `</b>
+                </div>
+                <div class="btn" style="margin-top: 2px;margin-right: 18%;float: right;">
+                    <b style="color:#48576a">`
+	htmlBase64 := `</b>
                 </div>
             </div>
             <div style="max-height:800px;overflow:hidden;">
@@ -360,8 +366,17 @@ func AddUrlToTitle(url string, picBuf []byte) (result []byte, err error) {
 	encodedBase64 := base64.StdEncoding.EncodeToString(picBuf)
 
 	// 合成新的html文件
-	html := append([]byte(htmlPart1), []byte(url)...)
-	html = append(append(append(html, []byte(htmlPart2)...), []byte(encodedBase64)...), []byte(htmlPart3)...)
+	html := append(append([]byte(htmlPart1), []byte(htmlTitle)...), []byte(url)...)
+
+	// 添加时间戳
+	if hasTimeStamp {
+		curTime := time.Now().Format(`2006-01-02 15:04:05`)
+		html = append(html, []byte(htmlTimeStamp)...)
+		html = append(html, []byte(curTime)...)
+	}
+
+	// 添加
+	html = append(append(append(html, []byte(htmlBase64)...), []byte(encodedBase64)...), []byte(htmlPart3)...)
 	var fn string
 	fn, err = WriteTempFile(".html", func(f *os.File) error {
 		_, err = f.Write(html)
