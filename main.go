@@ -21,6 +21,12 @@ var (
 	defaultTmpFilePrefix = "chrome_proxy_"
 )
 
+type ScreenshotOutput struct {
+	Data     []byte
+	Title    string
+	Location string
+}
+
 type ChromeActionInput struct {
 	URL       string `json:"url"`
 	Proxy     string `json:"proxy,omitempty"`
@@ -129,7 +135,7 @@ type chromeParam struct {
 	ChromeActionInput
 }
 
-func screenshotURL(options *chromeParam) ([]byte, error) {
+func screenshotURL(options *chromeParam) (*ScreenshotOutput, error) {
 	log.Println("screenshot of url:", options.URL)
 
 	var buf []byte
@@ -139,6 +145,11 @@ func screenshotURL(options *chromeParam) ([]byte, error) {
 	}
 	actions = append(actions, chromedp.CaptureScreenshot(&buf))
 
+	var title string
+	actions = append(actions, chromedp.Title(&title))
+	var url string
+	actions = append(actions, chromedp.Location(&url))
+
 	err := chromeActions(options.ChromeActionInput, func(s string, i ...interface{}) {
 
 	}, options.Timeout, actions...)
@@ -146,15 +157,22 @@ func screenshotURL(options *chromeParam) ([]byte, error) {
 		return nil, fmt.Errorf("screenShot failed(%w): %s", err, options.URL)
 	}
 
+	log.Printf("finished screenshot for %s", options.URL)
+
+	// 在截图中添加当前请求地址
 	if options.AddUrl {
 		tmp, err := AddUrlToTitle(options.URL, buf, options.AddTimeStamp)
 		if err != nil {
-			return buf, fmt.Errorf("add url title failed(%w): %s", err, options.URL)
+			return nil, fmt.Errorf("add url title failed(%w): %s", err, options.URL)
 		}
 		buf = tmp
 	}
 
-	return buf, nil
+	return &ScreenshotOutput{
+		Data:     buf,
+		Title:    title,
+		Location: url,
+	}, err
 }
 
 // renderURLDOM 生成单个url的domhtml
@@ -202,10 +220,12 @@ func getOptionFromRequest(r *http.Request) (*chromeParam, error) {
 }
 
 type result struct {
-	Code    int    `json:"code"`
-	Message string `json:"message,omitempt"`
-	Url     string `json:"url,omitempty"`
-	Data    string `json:"data,omitempty"`
+	Code     int    `json:"code"`
+	Message  string `json:"message,omitempt"`
+	Url      string `json:"url,omitempty"`
+	Data     string `json:"data,omitempty"`
+	Title    string `json:"title,omitempty"`
+	Location string `json:"location,omitempty"`
 }
 
 func (r result) Bytes() []byte {
@@ -229,7 +249,7 @@ func main() {
 			return
 		}
 
-		data, err := screenshotURL(options)
+		screenshotResult, err := screenshotURL(options)
 		if err != nil {
 			w.Write(result{
 				Code:    500,
@@ -240,9 +260,11 @@ func main() {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(result{
-			Code: 200,
-			Url:  options.URL,
-			Data: base64.StdEncoding.EncodeToString(data),
+			Code:     200,
+			Url:      options.URL,
+			Data:     base64.StdEncoding.EncodeToString(screenshotResult.Data),
+			Title:    screenshotResult.Title,
+			Location: screenshotResult.Location,
 		}.Bytes())
 	})
 
