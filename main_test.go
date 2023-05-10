@@ -73,7 +73,7 @@ func TestResult_Bytes(t *testing.T) {
 		Timeout: 30,
 	})
 	assert.Nil(t, err)
-	assert.Contains(t, data, "fofa.info")
+	assert.Contains(t, data.html, "wrzxfw.top")
 }
 
 func TestAddUrlToTitle(t *testing.T) {
@@ -112,6 +112,73 @@ func TestAddUrlToTitle(t *testing.T) {
 				return err
 			})
 			log.Printf("save modified pic into: %s", fn)
+		})
+	}
+}
+
+func Test_renderURLDOM(t *testing.T) {
+	type args struct {
+		in      chromeParam
+		logf    func(string, ...interface{})
+		timeout int
+		actions []chromedp.Action
+	}
+	tests := []struct {
+		name string
+		args args
+		want *renderDomOutput
+	}{
+		{
+			name: "测试正常 render dom",
+			args: args{
+				in: chromeParam{
+					Sleep:        5,
+					Timeout:      30,
+					AddUrl:       false,
+					AddTimeStamp: false,
+					ChromeActionInput: ChromeActionInput{
+						URL: "https://www.baidu.com",
+					},
+				},
+				logf: func(s string, i ...interface{}) {},
+			},
+			want: &renderDomOutput{
+				html:     "百度",
+				title:    "百度一下，你就知道",
+				location: "https://www.baidu.com/",
+			},
+		},
+		{
+			name: "测试自定义proxy & UA",
+			args: args{
+				in: chromeParam{
+					Sleep:        5,
+					Timeout:      30,
+					AddUrl:       false,
+					AddTimeStamp: false,
+					ChromeActionInput: ChromeActionInput{
+						URL:       "https://www.fofa.info",
+						Proxy:     "socks5://127.0.0.1:7890",
+						UserAgent: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
+					},
+				},
+				logf: func(s string, i ...interface{}) {},
+			},
+			want: &renderDomOutput{
+				html:     "FOFA",
+				title:    "FOFA Search Engine",
+				location: "fofa.info",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := renderURLDOM(&tt.args.in)
+			assert.Nil(t, err)
+			assert.Contains(t, out.html, tt.want.html)
+			assert.Contains(t, out.location, tt.want.location)
+			assert.Equal(t, out.title, tt.want.title)
+			t.Logf("renderURLDOM result: %s", out.html[0:5])
 		})
 	}
 }

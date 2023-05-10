@@ -33,7 +33,7 @@ type ChromeActionInput struct {
 	UserAgent string `json:"user_agent,omitempty"`
 }
 
-//chromeActions 完成chrome的headless操作
+// chromeActions 完成chrome的headless操作
 func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), timeout int, actions ...chromedp.Action) error {
 	var err error
 
@@ -175,8 +175,14 @@ func screenshotURL(options *chromeParam) (*ScreenshotOutput, error) {
 	}, err
 }
 
+type renderDomOutput struct {
+	html     string
+	title    string
+	location string
+}
+
 // renderURLDOM 生成单个url的domhtml
-func renderURLDOM(options *chromeParam) (string, error) {
+func renderURLDOM(options *chromeParam) (*renderDomOutput, error) {
 	log.Println("renderURLDOM of url:", options.URL)
 
 	var html string
@@ -184,6 +190,7 @@ func renderURLDOM(options *chromeParam) (string, error) {
 	if options.Sleep > 0 {
 		actions = append(actions, chromedp.Sleep(time.Second*time.Duration(options.Sleep)))
 	}
+
 	actions = append(actions, chromedp.ActionFunc(func(ctx context.Context) error {
 		node, err := dom.GetDocument().Do(ctx)
 		if err != nil {
@@ -193,15 +200,24 @@ func renderURLDOM(options *chromeParam) (string, error) {
 		return err
 	}))
 
+	var title string
+	actions = append(actions, chromedp.Title(&title))
+	var location string
+	actions = append(actions, chromedp.Location(&location))
+
 	err := chromeActions(options.ChromeActionInput, func(s string, i ...interface{}) {
 
 	}, options.Timeout, actions...)
 
 	if err != nil {
-		return "", fmt.Errorf("renderURLDOM failed(%w): %s", err, options.URL)
+		return nil, fmt.Errorf("renderURLDOM failed(%w): %s", err, options.URL)
 	}
 
-	return html, err
+	return &renderDomOutput{
+		html:     html,
+		title:    title,
+		location: location,
+	}, err
 }
 
 func getOptionFromRequest(r *http.Request) (*chromeParam, error) {
@@ -290,9 +306,11 @@ func main() {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Write(result{
-			Code: 200,
-			Url:  options.URL,
-			Data: data,
+			Code:     200,
+			Url:      options.URL,
+			Data:     data.html,
+			Title:    data.title,
+			Location: data.location,
 		}.Bytes())
 	})
 
@@ -303,7 +321,7 @@ func main() {
 	}
 }
 
-//AddUrlToTitle 通过html转换对整个screenshot截图结果进行处理，添加标题栏并在其中写入访问的url地址
+// AddUrlToTitle 通过html转换对整个screenshot截图结果进行处理，添加标题栏并在其中写入访问的url地址
 func AddUrlToTitle(url string, picBuf []byte, hasTimeStamp bool) (result []byte, err error) {
 	htmlPart1 := `<!DOCTYPE html>
 <html lang="en">

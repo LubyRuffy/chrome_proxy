@@ -60,8 +60,10 @@ curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0
 ```json
 {
   "code": 200,
-  "url": "http://www.baidu.com",
-  "data": "<html>...</html>"
+  "url": "https://www.baidu.com",
+  "data": "<html>...</html>",
+  "title": "百度一下，你就知道",
+  "location": "https://www.baidu.com/"
 }
 ```
 
