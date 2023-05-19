@@ -19,10 +19,11 @@ docker push *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
 
 运行
 ```shell
+
 docker run --rm -it -p5558:5558 lubyruffy/chrome_proxy:latest
 ```
 
-运行
+保存镜像
 ```shell
 docker save -o chrome_proxy.tar lubyruffy/chrome_proxy:latest
 ```

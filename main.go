@@ -73,6 +73,11 @@ func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), time
 	}
 
 	allocCtx, bcancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer func() {
+		b := chromedp.FromContext(allocCtx).Browser
+		b.Process().Signal(os.Kill)
+		bcancel()
+	}()
 	defer bcancel()
 
 	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(logf))
