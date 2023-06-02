@@ -37,10 +37,10 @@ func Test_chromeActions(t *testing.T) {
 			},
 		},
 		{
-			name: "测试自定义proxy & UA",
+			name: "测试钓鱼页面proxy & UA",
 			args: args{
 				in: ChromeActionInput{
-					URL:       "http://www.baidu.com",
+					URL:       "http://shop.bnuzac.com/articles.php/about/456415?newsid=oaxn1d.html",
 					Proxy:     "socks5://127.0.0.1:7890",
 					UserAgent: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
 				},
@@ -168,6 +168,28 @@ func Test_renderURLDOM(t *testing.T) {
 				html:     "FOFA",
 				title:    "FOFA Search Engine",
 				location: "fofa.info",
+			},
+		},
+		{
+			name: "钓鱼测试 proxy & UA",
+			args: args{
+				in: chromeParam{
+					Sleep:        5,
+					Timeout:      30,
+					AddUrl:       false,
+					AddTimeStamp: false,
+					ChromeActionInput: ChromeActionInput{
+						URL:       "http://asd.naeuib12123d.xyz/a.html#/",
+						UserAgent: "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36",
+						Proxy:     "socks5://127.0.0.1:7890",
+					},
+				},
+				logf: func(s string, i ...interface{}) {},
+			},
+			want: &renderDomOutput{
+				html:     "ETC联网升级",
+				title:    "认证中心",
+				location: "http://asd.naeuib12123d.xyz/a.html#/",
 			},
 		},
 	}

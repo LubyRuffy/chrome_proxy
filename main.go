@@ -97,16 +97,17 @@ func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), time
 				var htmlDom string
 				err = chromedp.WaitReady("body", chromedp.ByQuery).Do(cxt)
 				if err == nil {
-					if err := chromedp.OuterHTML("html", &htmlDom).Do(cxt); err != nil {
-						log.Println("[DEBUG] fetch html failed:", err)
+					if err2 := chromedp.OuterHTML("html", &htmlDom).Do(cxt); err != nil {
+						log.Println("[DEBUG] fetch html failed:", err2)
 					}
 				}
 				// 20211219发现如果存在JS前端框架 (如vue, react...) 执行等待读取.
 				html2Low := strings.ToLower(htmlDom)
 				if strings.Contains(html2Low, "javascript") || strings.Contains(html2Low, "</script>'") {
-					err = chromedp.WaitVisible("div", chromedp.ByQuery).Do(cxt)
-					if err := chromedp.OuterHTML("html", &htmlDom).Do(cxt); err != nil {
-						log.Println("[DEBUG] fetch html failed:", err)
+					err2 := chromedp.WaitVisible("div", chromedp.ByQuery).Do(cxt)
+					if err2 = chromedp.OuterHTML("html", &htmlDom).Do(cxt); err2 != nil {
+						// extra error, doesnt affect anything else
+						log.Println("[DEBUG] fetch html failed:", err2)
 					}
 				}
 
