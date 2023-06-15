@@ -44,7 +44,7 @@ func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), time
 
 	// prepare the chrome options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", true),
+		chromedp.Flag("headless", false),
 		chromedp.Flag("incognito", true), // 隐身模式
 		chromedp.Flag("ignore-certificate-errors", true),
 		chromedp.Flag("enable-automation", true),
@@ -142,6 +142,7 @@ type chromeParam struct {
 	ChromeActionInput
 }
 
+// screenshotURL  截图
 func screenshotURL(options *chromeParam) (*ScreenshotOutput, error) {
 	log.Println("screenshot of url:", options.URL)
 
@@ -168,7 +169,7 @@ func screenshotURL(options *chromeParam) (*ScreenshotOutput, error) {
 
 	// 在截图中添加当前请求地址
 	if options.AddUrl {
-		tmp, err := AddUrlToTitle(options.URL, buf, options.AddTimeStamp)
+		tmp, err := AddUrlNavBar(options.URL, title, buf, options.AddTimeStamp)
 		if err != nil {
 			return nil, fmt.Errorf("add url title failed(%w): %s", err, options.URL)
 		}
@@ -444,6 +445,10 @@ func AddUrlToTitle(url string, picBuf []byte, hasTimeStamp bool) (result []byte,
 	return buf, err
 }
 
+func AddUrlNavBar(url, title string, picBuf []byte, hasTimeStamp bool) (result []byte, err error) {
+	return addNavBar(url, title, picBuf)
+}
+
 // fullScreenshot takes a screenshot of the entire browser viewport.
 //
 // Note: chromedp.FullScreenshot overrides the device's emulation settings. Use
@@ -451,7 +456,7 @@ func AddUrlToTitle(url string, picBuf []byte, hasTimeStamp bool) (result []byte,
 func fullScreenshot(urlstr string, quality int, res *[]byte) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.Navigate(urlstr),
-		chromedp.FullScreenshot(res, quality),
+		chromedp.CaptureScreenshot(res),
 	}
 }
 

@@ -87,7 +87,7 @@ func TestAddUrlToTitle(t *testing.T) {
 	}{
 		{
 			name: "测试截图添加url地址",
-			args: args{url: `https://fofa.info`, useTimeStamp: true},
+			args: args{url: `https://fofa.info`, useTimeStamp: false},
 		},
 	}
 	for _, tt := range tests {
@@ -102,6 +102,47 @@ func TestAddUrlToTitle(t *testing.T) {
 			assert.Nil(t, err)
 
 			gotResult, err := AddUrlToTitle(tt.args.url, buf, tt.args.useTimeStamp)
+			assert.Nil(t, err)
+			assert.Greater(t, len(gotResult), len(buf))
+
+			// 效果展示
+			var fn string
+			fn, err = WriteTempFile(".png", func(f *os.File) error {
+				_, err = f.Write(gotResult)
+				return err
+			})
+			log.Printf("save modified pic into: %s", fn)
+		})
+	}
+}
+
+func TestAddUrlToNavBar(t *testing.T) {
+	type args struct {
+		url          string
+		useTimeStamp bool
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "测试带有导航栏的截图",
+			args: args{url: `https://fofa.info`, useTimeStamp: false},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := chromedp.NewContext(
+				context.Background(),
+			)
+			defer cancel()
+
+			var buf []byte
+			var title string
+			err := chromedp.Run(ctx, fullScreenshot(tt.args.url, 90, &buf), chromedp.Title(&title))
+			assert.Nil(t, err)
+
+			gotResult, err := AddUrlNavBar(tt.args.url, title, buf, tt.args.useTimeStamp)
 			assert.Nil(t, err)
 			assert.Greater(t, len(gotResult), len(buf))
 
@@ -201,6 +242,41 @@ func Test_renderURLDOM(t *testing.T) {
 			assert.Contains(t, out.location, tt.want.location)
 			assert.Equal(t, out.title, tt.want.title)
 			t.Logf("renderURLDOM result: %s", out.html[0:5])
+		})
+	}
+}
+
+func TestDrawNavInfo(t *testing.T) {
+	type args struct {
+		url          string
+		useTimeStamp bool
+	}
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "测试带有导航栏的截图",
+			args: args{url: `https://fofa.info`, useTimeStamp: false},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := chromedp.NewContext(
+				context.Background(),
+			)
+			defer cancel()
+
+			var buf []byte
+			var title string
+			err := chromedp.Run(ctx, fullScreenshot(tt.args.url, 90, &buf), chromedp.Title(&title))
+			assert.Nil(t, err)
+
+			gotResult, err := drawNavInfo(tt.args.url, title)
+			assert.Nil(t, err)
+			assert.Greater(t, len(gotResult), 0)
+
+			log.Printf("save modified pic into: %s", gotResult)
 		})
 	}
 }
