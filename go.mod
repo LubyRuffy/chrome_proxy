@@ -1,4 +1,4 @@
-module github.com/LubyRuffy/chrome_docker
+module github.com/LubyRuffy/chrome_proxy
 
 go 1.18
 
