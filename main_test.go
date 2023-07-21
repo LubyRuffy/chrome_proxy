@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"log"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -65,7 +66,7 @@ func Test_chromeActions(t *testing.T) {
 
 func TestResult_Bytes(t *testing.T) {
 	debug = true
-	data, err := renderURLDOM(&chromeParam{
+	data, err := RenderDom(&chromeParam{
 		ChromeActionInput: ChromeActionInput{
 			URL: "https://bgp.he.net/ip/106.75.29.24",
 		},
@@ -167,7 +168,7 @@ func Test_renderURLDOM(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *renderDomOutput
+		want *RenderDomOutput
 	}{
 		{
 			name: "测试正常 render dom",
@@ -183,7 +184,7 @@ func Test_renderURLDOM(t *testing.T) {
 				},
 				logf: func(s string, i ...interface{}) {},
 			},
-			want: &renderDomOutput{
+			want: &RenderDomOutput{
 				html:     "百度",
 				title:    "百度一下，你就知道",
 				location: "https://www.baidu.com/",
@@ -205,7 +206,7 @@ func Test_renderURLDOM(t *testing.T) {
 				},
 				logf: func(s string, i ...interface{}) {},
 			},
-			want: &renderDomOutput{
+			want: &RenderDomOutput{
 				html:     "FOFA",
 				title:    "FOFA Search Engine",
 				location: "fofa.info",
@@ -227,7 +228,7 @@ func Test_renderURLDOM(t *testing.T) {
 				},
 				logf: func(s string, i ...interface{}) {},
 			},
-			want: &renderDomOutput{
+			want: &RenderDomOutput{
 				html:     "ETC联网升级",
 				title:    "认证中心",
 				location: "http://asd.naeuib12123d.xyz/a.html#/",
@@ -236,12 +237,12 @@ func Test_renderURLDOM(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, err := renderURLDOM(&tt.args.in)
+			out, err := RenderDom(&tt.args.in)
 			assert.Nil(t, err)
 			assert.Contains(t, out.html, tt.want.html)
 			assert.Contains(t, out.location, tt.want.location)
 			assert.Equal(t, out.title, tt.want.title)
-			t.Logf("renderURLDOM result: %s", out.html[0:5])
+			t.Logf("RenderDom result: %s", out.html[0:5])
 		})
 	}
 }
@@ -277,6 +278,38 @@ func TestDrawNavInfo(t *testing.T) {
 			assert.Greater(t, len(gotResult), 0)
 
 			log.Printf("save modified pic into: %s", gotResult)
+		})
+	}
+}
+
+func Test_gptProcess(t *testing.T) {
+	type args struct {
+		in ChromeActionInput
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantRes string
+	}{
+		{
+			name: "测试 GPT 验证 - 成功",
+			args: args{in: ChromeActionInput{
+				URL: "http://192.248.178.124:3002/",
+			}},
+			wantRes: "Hello",
+		},
+		{
+			name: "测试 GPT 验证 - 失败",
+			args: args{in: ChromeActionInput{
+				URL: "http://119.135.192.236:8002/",
+			}},
+			wantRes: "ChatGPT error 429",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := gptProcess(tt.args.in)
+			assert.Truef(t, strings.Contains(got, tt.wantRes), "%s = gptProcess(%v) != %s", got, tt.args.in.URL, tt.wantRes)
 		})
 	}
 }

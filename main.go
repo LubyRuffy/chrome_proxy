@@ -135,10 +135,11 @@ func chromeActions(in ChromeActionInput, logf func(string, ...interface{}), time
 }
 
 type chromeParam struct {
-	Sleep        int  `json:"sleep"`
-	Timeout      int  `json:"timeout"`
-	AddUrl       bool `json:"add_url"` // 在截图中展示url地址
-	AddTimeStamp bool `json:"add_time_stamp"`
+	Sleep        int        `json:"sleep"`
+	Timeout      int        `json:"timeout"`
+	AddUrl       bool       `json:"add_url"` // 在截图中展示url地址
+	AddTimeStamp bool       `json:"add_time_stamp"`
+	Script       ScriptType `json:"script"` // 是否执行脚本：0-无、1-GPT验证请求
 	ChromeActionInput
 }
 
@@ -183,15 +184,23 @@ func screenshotURL(options *chromeParam) (*ScreenshotOutput, error) {
 	}, err
 }
 
-type renderDomOutput struct {
-	html     string
-	title    string
-	location string
+type RenderDomOutput struct {
+	html         string
+	title        string
+	location     string
+	availableGPT bool
 }
 
-// renderURLDOM 生成单个url的domhtml
-func renderURLDOM(options *chromeParam) (*renderDomOutput, error) {
-	log.Println("renderURLDOM of url:", options.URL)
+type ScriptType int
+
+const (
+	ScriptNone = 0
+	ScriptGPT  = 1
+)
+
+// RenderDom 生成单个url的domhtml
+func RenderDom(options *chromeParam) (*RenderDomOutput, error) {
+	log.Println("RenderDom of url:", options.URL)
 
 	var html string
 	var actions []chromedp.Action
@@ -218,14 +227,94 @@ func renderURLDOM(options *chromeParam) (*renderDomOutput, error) {
 	}, options.Timeout, actions...)
 
 	if err != nil {
-		return nil, fmt.Errorf("renderURLDOM failed(%w): %s", err, options.URL)
+		return nil, fmt.Errorf("RenderDom failed(%w): %s", err, options.URL)
 	}
 
-	return &renderDomOutput{
-		html:     html,
-		title:    title,
-		location: location,
+	var gptResult string
+	if options.Script == ScriptGPT {
+		gptResult = gptProcess(options.ChromeActionInput)
+	}
+
+	return &RenderDomOutput{
+		html:         html,
+		title:        title,
+		location:     location,
+		availableGPT: strings.Contains(gptResult, "Hello"),
 	}, err
+}
+
+func gptProcess(in ChromeActionInput) (res string) {
+	// set user-agent
+	if in.UserAgent == "" {
+		in.UserAgent = defaultUserAgent
+	}
+
+	// prepare the chrome options
+	opts := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", false),
+		chromedp.Flag("incognito", true), // 隐身模式
+		chromedp.Flag("enable-automation", true),
+		chromedp.Flag("disable-extensions", true),
+		chromedp.Flag("disable-web-security", true),
+		chromedp.Flag("disable-dev-shm-usage", true),
+		chromedp.IgnoreCertErrors,
+		chromedp.NoFirstRun,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.NoSandbox,
+		chromedp.DisableGPU,
+		chromedp.UserAgent(in.UserAgent), // chromedp.Flag("user-agent", defaultUserAgent)
+		chromedp.WindowSize(1024, 768),
+	)
+
+	// set proxy if exists
+	if in.Proxy != "" {
+		opts = append(opts, chromedp.ProxyServer(in.Proxy))
+	}
+
+	if debug {
+		opts = append(chromedp.DefaultExecAllocatorOptions[:2],
+			chromedp.DefaultExecAllocatorOptions[3:]...)
+		opts = append(opts, chromedp.Flag("auto-open-devtools-for-tabs", true))
+	}
+
+	allocCtx, bcancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer func() {
+		bcancel()
+		b := chromedp.FromContext(allocCtx).Browser
+		if b != nil && b.Process() != nil {
+			b.Process().Signal(os.Kill)
+		}
+	}()
+
+	// create chrome instance
+	ctx, cancel := chromedp.NewContext(
+		context.Background(),
+		//chromedp.WithDebugf(log.Printf),
+	)
+	defer cancel()
+
+	// create a timeout
+	ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	// navigate to a page, wait for an element, click
+	var gptResp string
+	var gptInputSelector = `#app > div > div.h-full.dark\:bg-\[\#24272e\].transition-all.p-4 > div > div > div > div > div > div > footer > div > div > div.n-auto-complete > div > div.n-input-wrapper > div.n-input__textarea.n-scrollbar > textarea`
+	err := chromedp.Run(ctx,
+		chromedp.Navigate(in.URL),
+		// wait for footer element is visible (ie, page is loaded)
+		chromedp.WaitVisible(`#app > div > div.h-full.dark\:bg-\[\#24272e\].transition-all.p-4 > div > div > div > div > div > div > footer`),
+		//// find and click "Example" link
+		chromedp.SendKeys(gptInputSelector, "hi"),
+		chromedp.Click(`#app > div > div.h-full.dark\:bg-\[\#24272e\].transition-all.p-4 > div > div > div > div > div > div > footer > div > div > button`, chromedp.NodeVisible),
+		chromedp.WaitVisible(`#image-wrapper > div > div:nth-child(2)`),
+		chromedp.Text(`#image-wrapper > div > div:nth-child(2) > div.overflow-hidden.text-sm.items-start > div > div[class~="message-reply"] > div > div > div > p`,
+			&gptResp),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return gptResp
 }
 
 func getOptionFromRequest(r *http.Request) (*chromeParam, error) {
@@ -304,7 +393,7 @@ func main() {
 			return
 		}
 
-		data, err := renderURLDOM(options)
+		data, err := RenderDom(options)
 		if err != nil {
 			w.Write(result{
 				Code:    500,
