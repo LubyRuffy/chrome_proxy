@@ -11,6 +11,7 @@ RUN --mount=type=bind,source=.,destination=/chrome_docker \
 FROM chromedp/headless-shell as app
 ENV GO111MODULE=on
 ENV GOPROXY=https://goproxy.cn
+RUN apt-get update
 RUN --mount=type=cache,sharing=locked,target=/var/lib/apt \
     --mount=type=cache,sharing=locked,target=/var/cache/apt \
     apt-get update && apt-get install -y --no-install-recommends \
