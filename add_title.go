@@ -34,8 +34,8 @@ func addNavBar(url, title string, picBuf []byte) ([]byte, error) {
 	if len(title) > 36 {
 		title = title[:35]
 	}
-	if len(url) > 176 {
-		url = url[:175]
+	if len(url) > 167 {
+		url = url[:166]
 	}
 
 	navImg, err := drawNavInfo(title, url)
