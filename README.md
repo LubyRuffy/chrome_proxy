@@ -8,18 +8,10 @@
 docker build --tag lubyruffy/chrome_proxy:latest .
 ```
 
-## 推送k8s
-```shell
-aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin *.dkr.ecr.*.amazonaws.com.cn
-docker tag lubyruffy/chrome_proxy:latest *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
-docker push *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
-```
-
 ## 测试运行
 
 运行
 ```shell
-
 docker run --rm -it -p5558:5558 lubyruffy/chrome_proxy:latest
 ```
 
