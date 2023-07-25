@@ -5,11 +5,7 @@ go 1.18
 require (
 	github.com/chromedp/cdproto v0.0.0-20230220211738-2b1ec77315c9
 	github.com/chromedp/chromedp v0.9.1
-	github.com/disintegration/imaging v1.6.2
-	github.com/fogleman/gg v1.3.0
-	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/image v0.0.0-20191009234506-e7c1f5e7dbb8
 )
 
 require (
