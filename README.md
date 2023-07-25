@@ -1,4 +1,55 @@
-# chrome_docker
+# Chrome Proxy
+
+调用 chromedp 进行网页渲染，对渲染内容进行截图/保留
+
+![screenshot_with_url.png](screenshot_with_url.png)
+
+## 通过 Golang 调用
+```golang
+package main
+
+import (
+	"fmt"
+	"github.com/LubyRuffy/chrome_proxy/models"
+	"github.com/LubyRuffy/chrome_proxy/screenshot"
+	"github.com/LubyRuffy/chrome_proxy/utils"
+	"os"
+)
+
+func main() {
+	url := "https://fofa.info"
+
+	// take screenshot
+	screenshotOutput, err := screenshot.ScreenshotURL(&models.ChromeParam{
+		Sleep:   5,
+		Timeout: 30,
+		ChromeActionInput: models.ChromeActionInput{
+			URL: url,
+		},
+	})
+	if err != nil {
+		fmt.Printf("fail to take screenshot for %s, %s", url, err.Error())
+		return
+	}
+
+	fmt.Printf("screenshot for url: %s, title: %s", screenshotOutput.Location, screenshotOutput.Title)
+
+	// save screenshot result to png file
+	fn, err := utils.WriteTempFile(".png", func(f *os.File) error {
+		_, err = f.Write(screenshotOutput.Data)
+		return err
+	})
+	if err != nil {
+		fmt.Printf("fail to save png file: %s", err.Error())
+		return
+	}
+
+	fmt.Printf("save picture to: %s", fn)
+}
+```
+
+---
+# 通过 Docker 启动
 
 用chrome的docker环境做最简单的截图服务器。
 
