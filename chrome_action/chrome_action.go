@@ -21,7 +21,7 @@ func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}
 
 	// prepare the chrome options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", true),
 		chromedp.Flag("incognito", true), // 隐身模式
 		chromedp.Flag("ignore-certificate-errors", true),
 		chromedp.Flag("enable-automation", true),
