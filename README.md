@@ -1,4 +1,55 @@
-# chrome_docker
+# Chrome Proxy
+
+调用 chromedp 进行网页渲染，对渲染内容进行截图/保留
+
+![screenshot_with_url.png](screenshot_with_url.png)
+
+## 通过 Golang 调用
+```golang
+package main
+
+import (
+	"fmt"
+	"github.com/LubyRuffy/chrome_proxy/models"
+	"github.com/LubyRuffy/chrome_proxy/screenshot"
+	"github.com/LubyRuffy/chrome_proxy/utils"
+	"os"
+)
+
+func main() {
+	url := "https://fofa.info"
+
+	// take screenshot
+	screenshotOutput, err := screenshot.ScreenshotURL(&models.ChromeParam{
+		Sleep:   5,
+		Timeout: 30,
+		ChromeActionInput: models.ChromeActionInput{
+			URL: url,
+		},
+	})
+	if err != nil {
+		fmt.Printf("fail to take screenshot for %s, %s", url, err.Error())
+		return
+	}
+
+	fmt.Printf("screenshot for url: %s, title: %s", screenshotOutput.Location, screenshotOutput.Title)
+
+	// save screenshot result to png file
+	fn, err := utils.WriteTempFile(".png", func(f *os.File) error {
+		_, err = f.Write(screenshotOutput.Data)
+		return err
+	})
+	if err != nil {
+		fmt.Printf("fail to save png file: %s", err.Error())
+		return
+	}
+
+	fmt.Printf("save picture to: %s", fn)
+}
+```
+
+---
+# 通过 Docker 启动
 
 用chrome的docker环境做最简单的截图服务器。
 
@@ -8,13 +59,6 @@
 docker build --tag lubyruffy/chrome_proxy:latest .
 ```
 
-## 推送k8s
-```shell
-aws ecr get-login-password --region cn-northwest-1 | docker login --username AWS --password-stdin *.dkr.ecr.*.amazonaws.com.cn
-docker tag lubyruffy/chrome_proxy:latest *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
-docker push *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
-```
-
 ## 测试运行
 
 运行
@@ -22,7 +66,7 @@ docker push *.dkr.ecr.*.amazonaws.com.cn/chromeproxy:v3
 docker run --rm -it -p5558:5558 lubyruffy/chrome_proxy:latest
 ```
 
-运行
+保存镜像
 ```shell
 docker save -o chrome_proxy.tar lubyruffy/chrome_proxy:latest
 ```
@@ -60,8 +104,10 @@ curl -d '{"url":"http://www.baidu.com", "sleep":1, "timeout":10}' http://127.0.0
 ```json
 {
   "code": 200,
-  "url": "http://www.baidu.com",
-  "data": "<html>...</html>"
+  "url": "https://www.baidu.com",
+  "data": "<html>...</html>",
+  "title": "百度一下，你就知道",
+  "location": "https://www.baidu.com/"
 }
 ```
 
