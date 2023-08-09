@@ -8,7 +8,6 @@ import (
 	"github.com/chromedp/cdproto/dom"
 	"github.com/chromedp/chromedp"
 	"log"
-	"time"
 )
 
 // RenderDom 生成单个url的 dom html
@@ -17,9 +16,6 @@ func RenderDom(options *models.ChromeParam) (*models.RenderDomOutput, error) {
 
 	var html string
 	var actions []chromedp.Action
-	if options.Sleep > 0 {
-		actions = append(actions, chromedp.Sleep(time.Second*time.Duration(options.Sleep)))
-	}
 
 	actions = append(actions, chromedp.ActionFunc(func(ctx context.Context) error {
 		node, err := dom.GetDocument().Do(ctx)
@@ -37,7 +33,7 @@ func RenderDom(options *models.ChromeParam) (*models.RenderDomOutput, error) {
 
 	err := chrome_action.ChromeActions(options.ChromeActionInput, func(s string, i ...interface{}) {
 
-	}, options.Timeout, actions...)
+	}, options.Timeout, nil, actions...)
 
 	if err != nil {
 		return nil, fmt.Errorf("RenderDom failed(%w): %s", err, options.URL)
@@ -47,5 +43,5 @@ func RenderDom(options *models.ChromeParam) (*models.RenderDomOutput, error) {
 		Html:     html,
 		Title:    title,
 		Location: location,
-	}, err
+	}, nil
 }
