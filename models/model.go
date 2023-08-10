@@ -47,12 +47,13 @@ type ScreenshotOutput struct {
 
 // Result 统一输出结果
 type Result struct {
-	Code     int    `json:"code"`
-	Message  string `json:"message,omitempt"`
-	Url      string `json:"url,omitempty"`
-	Data     string `json:"data,omitempty"`
-	Title    string `json:"title,omitempty"`
-	Location string `json:"location,omitempty"`
+	Code          int    `json:"code"`
+	Message       string `json:"message,omitempt"`
+	Url           string `json:"url,omitempty"`
+	Data          string `json:"data,omitempty"`
+	Title         string `json:"title,omitempty"`
+	Location      string `json:"location,omitempty"`
+	ScriptSuccess bool   `json:"script_success"`
 }
 
 func (r Result) Bytes() []byte {
