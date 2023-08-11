@@ -19,9 +19,6 @@ func ScreenshotURL(options *models.ChromeParam) (*models.ScreenshotOutput, error
 
 	var buf []byte
 	var actions []chromedp.Action
-	if options.Sleep > 0 {
-		actions = append(actions, chromedp.Sleep(time.Second*time.Duration(options.Sleep)))
-	}
 	actions = append(actions, chromedp.CaptureScreenshot(&buf))
 
 	var title string
@@ -31,7 +28,7 @@ func ScreenshotURL(options *models.ChromeParam) (*models.ScreenshotOutput, error
 
 	err := chrome_action.ChromeActions(options.ChromeActionInput, func(s string, i ...interface{}) {
 
-	}, options.Timeout, actions...)
+	}, options.Timeout, nil, actions...)
 	if err != nil {
 		return nil, fmt.Errorf("screenShot failed(%w): %s", err, options.URL)
 	}

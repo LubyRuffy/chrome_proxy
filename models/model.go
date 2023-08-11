@@ -1,6 +1,8 @@
 package models
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 var (
 	// DefaultUserAgent 默认 UA
@@ -18,12 +20,12 @@ type ChromeActionInput struct {
 	URL       string `json:"url"`
 	Proxy     string `json:"proxy,omitempty"`
 	UserAgent string `json:"user_agent,omitempty"`
+	Sleep     int    `json:"sleep"`
+	Timeout   int    `json:"timeout"`
 }
 
 // ChromeParam Chrome 渲染输入字段
 type ChromeParam struct {
-	Sleep        int  `json:"sleep"`
-	Timeout      int  `json:"timeout"`
 	AddUrl       bool `json:"add_url"` // 在截图中展示url地址
 	AddTimeStamp bool `json:"add_time_stamp"`
 	ChromeActionInput
@@ -45,12 +47,13 @@ type ScreenshotOutput struct {
 
 // Result 统一输出结果
 type Result struct {
-	Code     int    `json:"code"`
-	Message  string `json:"message,omitempt"`
-	Url      string `json:"url,omitempty"`
-	Data     string `json:"data,omitempty"`
-	Title    string `json:"title,omitempty"`
-	Location string `json:"location,omitempty"`
+	Code          int    `json:"code"`
+	Message       string `json:"message,omitempt"`
+	Url           string `json:"url,omitempty"`
+	Data          string `json:"data,omitempty"`
+	Title         string `json:"title,omitempty"`
+	Location      string `json:"location,omitempty"`
+	ScriptSuccess bool   `json:"script_success"`
 }
 
 func (r Result) Bytes() []byte {

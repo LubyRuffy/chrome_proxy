@@ -53,7 +53,7 @@ func Test_chromeActions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ChromeActions(tt.args.in, func(s string, i ...interface{}) {}, tt.args.timeout, tt.args.actions...)
+			err := ChromeActions(tt.args.in, func(s string, i ...interface{}) {}, tt.args.timeout, nil, tt.args.actions...)
 			assert.Nil(t, err)
 			assert.NotNil(t, buf)
 			t.Logf("screenshot result: %s", buf[0:5])

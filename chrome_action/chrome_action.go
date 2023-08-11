@@ -2,6 +2,7 @@ package chrome_action
 
 import (
 	"context"
+	"errors"
 	"github.com/LubyRuffy/chrome_proxy/models"
 	"github.com/chromedp/chromedp"
 	"log"
@@ -11,7 +12,7 @@ import (
 )
 
 // ChromeActions 完成chrome的headless操作
-func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}), timeout int, actions ...chromedp.Action) error {
+func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}), timeout int, preActions []chromedp.Action, actions ...chromedp.Action) error {
 	var err error
 
 	// set user-agent
@@ -21,7 +22,7 @@ func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}
 
 	// prepare the chrome options
 	opts := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", false),
+		chromedp.Flag("headless", true),
 		chromedp.Flag("incognito", true), // 隐身模式
 		chromedp.Flag("ignore-certificate-errors", true),
 		chromedp.Flag("enable-automation", true),
@@ -59,6 +60,7 @@ func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}
 	}()
 
 	ctx, cancel := chromedp.NewContext(allocCtx, chromedp.WithLogf(logf))
+	defer cancel()
 	ctx, cancel = context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
 	defer cancel()
 
@@ -89,6 +91,13 @@ func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}
 				}
 
 				eCh <- err
+
+				// 将休眠移至当前位置，兼容title & location的获取
+				err = chromedp.Sleep(time.Duration(in.Sleep) * time.Second).Do(ctx)
+				if err != nil {
+					eCh <- err
+				}
+				eCh <- errors.New("finished")
 			}(ch)
 
 			select {
@@ -103,10 +112,21 @@ func ChromeActions(in models.ChromeActionInput, logf func(string, ...interface{}
 		}),
 	}
 
+	// 用于RenderDOM中的actions执行
+	if preActions == nil {
+		preActions = []chromedp.Action{}
+	}
+
+	realActions = append(preActions, realActions...)
 	realActions = append(realActions, actions...)
 
 	// run task list
 	err = chromedp.Run(ctx, realActions...)
+
+	// 以 finished 作为当前任务结尾
+	if err != nil && err.Error() == "finished" {
+		return nil
+	}
 
 	return err
 }
